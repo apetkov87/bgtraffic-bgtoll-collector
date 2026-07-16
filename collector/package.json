@@ -1,6 +1,6 @@
 {
   "name": "bgtraffic-bgtoll-collector",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "type": "module",
   "description": "Browser collector for the official BGTOLL live traffic map",
