@@ -5,7 +5,7 @@ import process from 'node:process';
 
 const OFFICIAL_PAGE = process.env.BGTOLL_TRAFFIC_PAGE || 'https://bgtoll.bg/traffic_passes/';
 const OUTPUT_FILE = path.resolve(process.env.BGTRAFFIC_OUTPUT_FILE || 'collector-output/latest.json');
-const COLLECTOR_VERSION = '1.1.1';
+const COLLECTOR_VERSION = '1.2.0';
 const MIN_RECORDS = Number(process.env.BGTRAFFIC_MIN_RECORDS || 10);
 const WAIT_MS = Number(process.env.BGTRAFFIC_WAIT_MS || 30000);
 const diagnosticsDir = path.resolve(process.env.BGTRAFFIC_DIAGNOSTICS_DIR || 'collector-diagnostics');
@@ -56,6 +56,67 @@ function cleanText(value) {
     .replace(/&amp;/gi, '&')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function scalarSourceExtra(object) {
+  const excluded = new Set([
+    'lat','latitude','lon','lng','longitude','x','y','coordinates','coord','position','latlng',
+    'count15min','count_15m','count15','vehicles15','last15Minutes',
+    'count1Hour','count_60m','count60','vehicles60','lastHour',
+    'scp','external_id','externalId','stationCode','code','id','name','nameBG','location_name','locationName','title','stationName',
+    'direction','directionName','direction_name','directionMarker','direction_code','directionCode','dir','direction_id',
+  ].map((key) => key.toLowerCase()));
+  const extra = {};
+  for (const [key, value] of Object.entries(object || {})) {
+    if (excluded.has(String(key).toLowerCase())) continue;
+    if (value === null || value === undefined) continue;
+    if (['string','number','boolean'].includes(typeof value)) {
+      const cleaned = typeof value === 'string' ? cleanText(value).slice(0, 500) : value;
+      if (cleaned !== '') extra[key] = cleaned;
+    }
+    if (Object.keys(extra).length >= 40) break;
+  }
+  return extra;
+}
+
+function normalizeClassMap(value) {
+  if (!value || typeof value !== 'object') return null;
+  const result = {};
+  const entries = Array.isArray(value) ? value.entries() : Object.entries(value);
+  for (const [key, item] of entries) {
+    let code = key;
+    let count = item;
+    if (item && typeof item === 'object') {
+      code = pick(item, ['class_code','class','vehicle_class','vehicleClass','type','code']) ?? key;
+      count = pick(item, ['count','vehicles','value','total']);
+    }
+    const classCode = Number(code);
+    const classCount = integer(count);
+    if (!Number.isInteger(classCode) || classCode < 0 || classCode > 9 || classCount === null) continue;
+    result[String(classCode)] = classCount;
+  }
+  return Object.keys(result).length ? result : null;
+}
+
+function vehicleBreakdown(object, period) {
+  const suffixes = period === 15
+    ? ['15min','15Min','15m','15M','_15m','Last15Minutes']
+    : ['1Hour','1hour','60min','60Min','60m','60M','_60m','LastHour'];
+  const bases = ['vehicleClasses','vehicle_classes','classCounts','class_counts','vehicleTypeCounts','vehicle_type_counts','vehiclesByClass','vehicles_by_class','types'];
+  for (const base of bases) {
+    for (const suffix of suffixes) {
+      const found = pick(object, [base + suffix, `${base}_${suffix}`]);
+      const normalized = normalizeClassMap(found);
+      if (normalized) return normalized;
+    }
+  }
+  if (period === 60) {
+    for (const base of bases) {
+      const normalized = normalizeClassMap(pick(object, [base]));
+      if (normalized) return normalized;
+    }
+  }
+  return null;
 }
 
 function directionLabel(value) {
@@ -140,6 +201,9 @@ function normalizeObject(object, context = {}) {
     count_60m: count60,
     measured_at: measuredAt,
     captured_from: context.url || OFFICIAL_PAGE,
+    vehicle_classes_15m: vehicleBreakdown(object, 15),
+    vehicle_classes_60m: vehicleBreakdown(object, 60),
+    source_extra: scalarSourceExtra(object),
   };
 }
 

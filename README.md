@@ -1,27 +1,40 @@
-# BGTraffic.eu — браузърен колектор за БГТОЛ
+# BGTraffic.eu v1.7.0
 
-Колекторът отваря официалната карта `https://bgtoll.bg/traffic_passes/` в Chromium, следи реалните XHR/fetch/WebSocket отговори и прихваща Leaflet/GeoJSON обектите. Към BGTraffic.eu се изпращат само записи с валидни координати, `count15min` и `count1Hour`.
+PHP MVC платформа за текущ трафик, история и анализ по контролни точки на БГТОЛ.
 
-## GitHub Actions
+## Основни промени
 
-1. Качи целия проект в публично GitHub repository.
-2. В `Settings → Secrets and variables → Actions` добави:
-   - `BGTRAFFIC_INGEST_URL` = `https://bgtraffic.eu/api/ingest/bgtoll/traffic`
-   - `BGTRAFFIC_INGEST_TOKEN` = токена, показан в администрацията на BGTraffic.eu.
-3. Отвори `Actions → BGTraffic · BGTOLL live traffic → Run workflow`.
-4. След успешния тест workflow-ът се изпълнява на 7, 22, 37 и 52 минута на всеки час.
+- Една физическа локация на картата, съдържаща двете направления.
+- Неутрални „Посока 1“ и „Посока 2“, докато няма проверено направление към конкретна дестинация.
+- Административен модул „Точки и посоки“ за задаване на човешки имена като „към София“.
+- Страничен детайл върху картата; пълната аналитична страница е без голяма карта.
+- Автоматично обновяване на публичната карта всяка минута.
+- Поддръжка на официалните класове МПС от подробните исторически архиви.
+- Съхраняване на допълнителните полета, които live източникът подава.
+- GitHub data bridge като активен трафик конектор.
 
-При неуспех workflow-ът качва screenshot, диагностика и извлечените записи като artifact.
+## Автоматичен поток
 
-## Собствен VPS
+1. GitHub Actions стартира Chromium колектора на 7, 22, 37 и 52 минута.
+2. Колекторът публикува `latest.json` в branch `data`.
+3. PHP cron на shared hosting проверява feed-а през 5 минути.
+4. API и картата проверяват за нови данни всяка минута.
 
-```bash
-cd collector
-npm install
-npx playwright install --with-deps chromium
-BGTRAFFIC_INGEST_URL="https://bgtraffic.eu/api/ingest/bgtoll/traffic" \
-BGTRAFFIC_INGEST_TOKEN="TOKEN_FROM_ADMIN" \
-npm run collect
+Препоръчителен cron:
+
+```cron
+*/5 * * * * php /home/USER/public_html/cli/import.php >/dev/null 2>&1
 ```
 
-> При публично repository стандартните GitHub-hosted runners са безплатни. GitHub може да спре scheduled workflow след 60 дни без repository активност; тогава workflow-ът се активира отново от Actions.
+## Обновяване
+
+1. Архивирай файловете и базата.
+2. Качи пакета върху текущата инсталация.
+3. Не заменяй `.env`.
+4. Отвори `/update.php` и приложи v1.7.0.
+5. Провери `/admin/sources`, `/admin/points` и `/karta`.
+6. Изтрий `update.php` и `install.php`.
+
+## Collector v1.2.0
+
+Collector v1.2.0 запазва основните live стойности, техническата посока, всички допълнителни скаларни полета и евентуална реална разбивка по класове, ако официалният отговор я подаде. Live агрегираният поток в момента съдържа общи стойности за 15 и 60 минути; подробните класове идват от отделния исторически набор.
