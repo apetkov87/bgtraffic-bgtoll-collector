@@ -4,15 +4,17 @@ import path from 'node:path';
 import process from 'node:process';
 
 const OFFICIAL_PAGE = process.env.BGTOLL_TRAFFIC_PAGE || 'https://bgtoll.bg/traffic_passes/';
-const INGEST_URL = process.env.BGTRAFFIC_INGEST_URL;
-const INGEST_TOKEN = process.env.BGTRAFFIC_INGEST_TOKEN;
-const COLLECTOR_VERSION = '1.0.0';
+const DELIVERY_MODE = process.env.BGTRAFFIC_DELIVERY_MODE || 'github-file';
+const INGEST_URL = process.env.BGTRAFFIC_INGEST_URL || '';
+const INGEST_TOKEN = process.env.BGTRAFFIC_INGEST_TOKEN || '';
+const OUTPUT_FILE = path.resolve(process.env.BGTRAFFIC_OUTPUT_FILE || 'collector-output/latest.json');
+const COLLECTOR_VERSION = '1.1.0';
 const MIN_RECORDS = Number(process.env.BGTRAFFIC_MIN_RECORDS || 10);
 const WAIT_MS = Number(process.env.BGTRAFFIC_WAIT_MS || 30000);
 const diagnosticsDir = path.resolve(process.env.BGTRAFFIC_DIAGNOSTICS_DIR || 'collector-diagnostics');
 
-if (!INGEST_URL || !INGEST_TOKEN) {
-  throw new Error('Липсват BGTRAFFIC_INGEST_URL или BGTRAFFIC_INGEST_TOKEN.');
+if (DELIVERY_MODE === 'http' && (!INGEST_URL || !INGEST_TOKEN)) {
+  throw new Error('При BGTRAFFIC_DELIVERY_MODE=http липсват BGTRAFFIC_INGEST_URL или BGTRAFFIC_INGEST_TOKEN.');
 }
 
 const diagnostics = {
@@ -383,47 +385,55 @@ if (normalized.length < MIN_RECORDS) {
 }
 
 const capturedFrom = diagnostics.matchedResponses[0]?.url || OFFICIAL_PAGE;
-const response = await fetch(INGEST_URL, {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${INGEST_TOKEN}`,
-    'X-BGTraffic-Token': INGEST_TOKEN,
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'User-Agent': `BGTrafficBrowserCollector/${COLLECTOR_VERSION}`,
+const payload = {
+  source: 'bgtoll_traffic',
+  schema_version: 1,
+  collector_version: COLLECTOR_VERSION,
+  collected_at: new Date().toISOString(),
+  official_page: OFFICIAL_PAGE,
+  captured_from: capturedFrom,
+  records: normalized,
+  diagnostics: {
+    response_count: diagnostics.responseCount,
+    inspected_responses: diagnostics.inspectedResponses,
+    matched_responses: diagnostics.matchedResponses.slice(0, 20),
+    leaflet_objects: diagnostics.leafletObjects,
+    inline_candidates: diagnostics.inlineCandidates,
+    failed_requests: diagnostics.failedRequests.slice(0, 20),
   },
-  body: JSON.stringify({
-    source: 'bgtoll_traffic',
-    schema_version: 1,
-    collector_version: COLLECTOR_VERSION,
-    collected_at: new Date().toISOString(),
-    official_page: OFFICIAL_PAGE,
-    captured_from: capturedFrom,
-    records: normalized,
-    diagnostics: {
-      response_count: diagnostics.responseCount,
-      inspected_responses: diagnostics.inspectedResponses,
-      matched_responses: diagnostics.matchedResponses.slice(0, 20),
-      leaflet_objects: diagnostics.leafletObjects,
-      inline_candidates: diagnostics.inlineCandidates,
-      failed_requests: diagnostics.failedRequests.slice(0, 20),
-    },
-  }),
-});
+};
 
-const responseText = await response.text();
-let responseBody;
-try { responseBody = JSON.parse(responseText); } catch { responseBody = { raw: responseText }; }
-if (!response.ok || !responseBody.success) {
-  await browser.close();
-  throw new Error(`BGTraffic.eu отказа payload-а: HTTP ${response.status} · ${responseBody.message || responseText}`);
+await fs.mkdir(path.dirname(OUTPUT_FILE), { recursive: true });
+await fs.writeFile(OUTPUT_FILE, JSON.stringify(payload, null, 2));
+
+let delivery = { mode: DELIVERY_MODE, output: OUTPUT_FILE };
+if (DELIVERY_MODE === 'http') {
+  const response = await fetch(INGEST_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${INGEST_TOKEN}`,
+      'X-BGTraffic-Token': INGEST_TOKEN,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'User-Agent': `BGTrafficBrowserCollector/${COLLECTOR_VERSION}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const responseText = await response.text();
+  let responseBody;
+  try { responseBody = JSON.parse(responseText); } catch { responseBody = { raw: responseText }; }
+  if (!response.ok || !responseBody.success) {
+    await browser.close();
+    throw new Error(`BGTraffic.eu отказа payload-а: HTTP ${response.status} · ${responseBody.message || responseText}`);
+  }
+  delivery = { mode: 'http', ingest: responseBody };
 }
 
 console.log(JSON.stringify({
   success: true,
   collected: normalized.length,
   capturedFrom,
-  ingest: responseBody,
+  delivery,
 }, null, 2));
 
 await browser.close();
