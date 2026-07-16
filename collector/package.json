@@ -1,0 +1,13 @@
+{
+  "name": "bgtraffic-bgtoll-collector",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser collector for the official BGTOLL live traffic map",
+  "scripts": {
+    "collect": "node index.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.54.0"
+  }
+}
