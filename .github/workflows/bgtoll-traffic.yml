@@ -1,4 +1,4 @@
-name: BGTraffic · BGTOLL live traffic
+name: BGTraffic · BGTOLL live traffic v1.1.1
 
 on:
   workflow_dispatch:
@@ -20,7 +20,6 @@ jobs:
       BGTOLL_TRAFFIC_PAGE: https://bgtoll.bg/traffic_passes/
       BGTRAFFIC_MIN_RECORDS: '10'
       BGTRAFFIC_WAIT_MS: '30000'
-      BGTRAFFIC_DELIVERY_MODE: github-file
       BGTRAFFIC_OUTPUT_FILE: collector-output/latest.json
 
     steps:
