@@ -1,4 +1,4 @@
-name: BGTraffic · data collector v2.1.0
+name: BGTraffic · data collector v2.2.0
 
 on:
   workflow_dispatch:
