@@ -1,4 +1,4 @@
-name: BGTraffic · data collector v2.3.0
+name: BGTraffic · data collector v2.4.0
 
 on:
   workflow_dispatch:
@@ -101,12 +101,17 @@ jobs:
           set -euo pipefail
           rm -rf /tmp/bgtraffic-optional
           git clone --depth 1 --branch data "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/bgtraffic-optional
-          cp collector/collector-output/weather.json /tmp/bgtraffic-optional/weather.json 2>/dev/null || true
-          cp collector/collector-output/accidents.json /tmp/bgtraffic-optional/accidents.json 2>/dev/null || true
           cd /tmp/bgtraffic-optional
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add weather.json accidents.json 2>/dev/null || true
+          if test -s "$GITHUB_WORKSPACE/collector/collector-output/weather.json"; then
+            cp "$GITHUB_WORKSPACE/collector/collector-output/weather.json" weather.json
+            git add weather.json
+          fi
+          if test -s "$GITHUB_WORKSPACE/collector/collector-output/accidents.json"; then
+            cp "$GITHUB_WORKSPACE/collector/collector-output/accidents.json" accidents.json
+            git add accidents.json
+          fi
           if ! git diff --cached --quiet; then
             git commit -m "Update weather and accident feeds $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
