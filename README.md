@@ -1,14 +1,11 @@
-# BGTraffic.eu Data Collector v2.2.0
+# BGTraffic Data Collector v2.3.0
 
-Събира и публикува:
+Автоматичен колектор за BGTraffic.eu.
 
-- `latest.json` — текущ трафик от БГТОЛ;
-- `weather.json` — пътна метеорология от официалните отворени данни на БГТОЛ;
-- `accidents.json` — ПТП от официалната ArcGIS карта на МВР.
+## Потокове
 
-## Какво е поправено
+- Трафик на живо от официалната карта на БГТОЛ.
+- Пътна метеорология директно от `https://bgtoll.bg/mto/`, включително прихващане на реалния XHR/fetch и same-origin fallback към `/index.php/mto/data`.
+- ПТП директно от установения ArcGIS слой на МВР, филтрирани от 2024 г. насам.
 
-- Weather колекторът вече преминава през bot-protection страницата с реален Chromium профил, отваря секцията за метеорологични данни, прихваща XHR/download заявки и обработва JSON, CSV и ZIP.
-- MVR колекторът натиска lazy-loaded секцията „Карта“, изчаква мрежовите заявки, открива portal/service URL адресите, търси публични ПТП слоеве през ArcGIS REST и обработва директните FeatureServer отговори.
-- Основният трафик се публикува преди допълнителните колектори, така че техен временен проблем не оставя `latest.json` остарял.
-- Подробната диагностика остава в GitHub Actions artifact `bgtraffic-diagnostics-*`.
+Workflow-ът публикува `latest.json`, `weather.json` и `accidents.json` в branch `data`.
