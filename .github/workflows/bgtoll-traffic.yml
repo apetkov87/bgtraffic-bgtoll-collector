@@ -1,4 +1,4 @@
-name: BGTraffic · data collector v2.2.0
+name: BGTraffic · data collector v2.3.0
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 30
     env:
       BGTOLL_TRAFFIC_PAGE: https://bgtoll.bg/traffic_passes/
-      BGTOLL_OPEN_DATA_PAGE: https://bgtoll.bg/otvoreni-danni
+      BGTOLL_WEATHER_PAGE: https://bgtoll.bg/mto/
       MVR_ACCIDENTS_PAGE: https://www.mvr.bg/map/apps/dashboards/0b7065b1f1d34d7d8ad530c51434a9f0
       BGTRAFFIC_MIN_RECORDS: '10'
       BGTRAFFIC_WAIT_MS: '30000'
@@ -28,6 +28,7 @@ jobs:
       BGTRAFFIC_WEATHER_MIN_RECORDS: '5'
       MVR_MIN_RECORDS: '10'
       MVR_MAX_RECORDS: '50000'
+      MVR_FROM_YEAR: '2024'
 
     steps:
       - name: Checkout
