@@ -1,13 +1,16 @@
 {
-  "name": "bgtraffic-bgtoll-collector",
-  "version": "1.2.0",
+  "name": "bgtraffic-data-collector",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Browser collector for the official BGTOLL live traffic map",
   "scripts": {
-    "collect": "node index.mjs"
+    "collect:traffic": "node traffic.mjs",
+    "enrich:vehicles": "node vehicle-types.mjs",
+    "collect:weather": "node weather.mjs",
+    "collect:accidents": "node accidents.mjs"
   },
   "dependencies": {
-    "playwright": "^1.54.0"
+    "playwright": "^1.54.0",
+    "adm-zip": "^0.5.16"
   }
 }
