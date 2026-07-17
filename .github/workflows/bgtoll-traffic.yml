@@ -1,4 +1,4 @@
-name: BGTraffic · data collector v2.4.0
+name: BGTraffic · data collector v2.5.0
 
 on:
   workflow_dispatch:
@@ -20,6 +20,9 @@ jobs:
       BGTOLL_TRAFFIC_PAGE: https://bgtoll.bg/traffic_passes/
       BGTOLL_WEATHER_PAGE: https://bgtoll.bg/mto/
       MVR_ACCIDENTS_PAGE: https://www.mvr.bg/map/apps/dashboards/0b7065b1f1d34d7d8ad530c51434a9f0
+      MVR_OPEN_DATA_RESOURCE: https://testdata.egov.bg/data/resourceView/3182e4d4-479f-417f-bda0-4c00d3da2303
+      MVR_OPEN_DATA_RESOURCE_ID: 3182e4d4-479f-417f-bda0-4c00d3da2303
+      CHERNAPISTA_DATA_PAGE: https://chernapista.com/data/
       BGTRAFFIC_MIN_RECORDS: '10'
       BGTRAFFIC_WAIT_MS: '30000'
       BGTRAFFIC_OUTPUT_FILE: collector-output/latest.json
